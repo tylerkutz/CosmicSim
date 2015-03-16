@@ -80,6 +80,9 @@ set(QSIM_SCRIPTS
     macros/runexample.mac
     macros/gui.mac
     macros/vis.mac
+    MuonDistribution.dat
+    PMTQE.txt
+    test.root
 )
 
 foreach(_script ${QSIM_SCRIPTS})
