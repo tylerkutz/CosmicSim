@@ -84,6 +84,7 @@ void qsimPrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent) {
     double mass = fParticleGun->GetParticleDefinition()->GetPDGMass();
     //double E = CLHEP::RandFlat::shoot( fEmin, fEmax );
     double E = pow(keMuon_distribution->GetRandom(),10);
+    E = E + 105.66;
    
     f1->Close();
     delete f1;

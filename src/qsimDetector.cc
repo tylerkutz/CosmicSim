@@ -75,7 +75,8 @@ G4bool qsimDetector::ProcessHits( G4Step *step, G4TouchableHistory *){
 	thishit->fE = track->GetTotalEnergy();
         //
         thishit->fLambda = 1.239824/track->GetTotalEnergy();
-        myfile.open ("/home/bulacarl/solid/qsim/build/PMTQE.txt");
+        myfile.open ("/home/tyler/PREX/CosmicSimulations/build/PMTQE.txt");
+	//myfile.open ("/home/bulacarl/solid/qsim/build/PMTQE.txt");
         if (myfile.is_open()) {
           while (!myfile.eof()) {
           myfile >> lambda >> QE;
