@@ -1,4 +1,3 @@
-
 #include "qsimDetectorConstruction.hh"
 
 #include "qsimDetector.hh"
@@ -23,6 +22,8 @@
 #include "G4Transform3D.hh"
 #include "G4PVPlacement.hh"
 #include "G4OpBoundaryProcess.hh"
+#include "G4VisAttributes.hh"
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -30,11 +31,26 @@ qsimDetectorConstruction::qsimDetectorConstruction()
 {
   det_x = det_y = det_z = 275*cm;
   quartz_x = 1.75*cm; 
-  quartz_y = 7.*cm; 
-  //Change quartz thickness here. 
-  quartz_z = 0.5*cm;
+  quartz_y = 7.5*cm;  //2.5 
+//Half cm
+    quartz_z = 0.5*cm;
+//One cm
+//  quartz_z = 0.5*cm;
 
-  quartz_zPos = -.0*cm;
+	quartz_zPos = 0.*cm;//-1.1*cm; //-.9*cm; //-.6*cm;
+
+  cone_rmin1 = 2.1*cm;
+  cone_rmax1 = cone_rmin1+.05*cm;
+  cone_rmin2 = 2.5*cm;  // normally 2.5*cm;
+  cone_rmax2 = cone_rmin2+.05*cm;
+  cone_z = quartz_y+.5*cm;    //3
+  cone_sphi = 0.;
+  cone_fphi = 2*3.1415;
+
+  rin = cone_rmin2;  // normally 2.5*cm;
+  rout = rin+.05*cm;
+  lngth = 1.9*cm;  // PMT dist. = 2*lngth +1cm  (10.4 == 4.5, 6.8 == 2.9)
+
 
 }
 
@@ -255,12 +271,26 @@ const G4int nEntries = 190;
   G4VPhysicalVolume* det_phys
     = new G4PVPlacement(0,G4ThreeVector(),det_log,"World",0,false,0);
 
+
+/*
+// Al plate
+	G4Box* Al_box = new G4Box("Al_box", 20*cm, 20*cm, .0176*cm);
+	
+  G4LogicalVolume* Al_log
+    = new G4LogicalVolume(Al_box,Alu_Mat,"Al_log",0,0,0);
+	
+	G4VPhysicalVolume* Al_phys = new G4PVPlacement(0, G4ThreeVector(0,0,-9.0*cm), Al_log, "Aluminum",
+									det_log, false, 0);
+*/
+
 // The quartz
 //	
 
   G4double q_yLB = quartz_y - (quartz_z);
 
-  G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, 2*quartz_z, 2*quartz_y, 2*q_yLB);
+  G4Trap* quartz_box = new G4Trap("Quartz", 2*quartz_x, 2*quartz_z, 4*quartz_y, 4*q_yLB);
+
+//  G4Box* quartz_box = new G4Box("Quartz",quartz_x,quartz_y,quartz_z);
 
   G4LogicalVolume* quartz_log
     = new G4LogicalVolume(quartz_box,Quartz,"Quartz",0,0,0);
@@ -271,23 +301,19 @@ const G4int nEntries = 190;
   quartz_log->SetSensitiveDetector(quartzSD);
 
   G4RotationMatrix* rotQ = new G4RotationMatrix;
-    rotQ->rotateX(M_PI/2.*rad);
-  
-  G4VPhysicalVolume* quartz_phys
-    = new G4PVPlacement(rotQ,G4ThreeVector(0.0*mm,0,quartz_zPos),quartz_log,"Quartz",
-                        det_log,false,0);
+//	rotQ->rotateZ(0.*rad);
+	
+    rotQ->rotateX(-90.*deg);
+    rotQ->rotateY(0*rad);
+    rotQ->rotateZ(135.*deg);
 
-//Quartz Suport Frame (need to be re-located)
+  G4VPhysicalVolume* quartz_phys
+    = new G4PVPlacement(rotQ,G4ThreeVector(0.0*cm,0,quartz_zPos),quartz_log,"Quartz",
+                        det_log,false,0);  // normally zero vector
 
 // Front Plate
 //
   G4Box* front_plate_box = new G4Box("front_plate", 8.89*cm,19.863*cm,0.9525*cm);
-
-  //G4LogicalVolume* front_plate_log
-    //= new G4LogicalVolume(front_plate_box,Alu_Mat,"front_plate",0,0,0);
-
-  //G4VPhysicalVolume* front_plate_phys
-    //= new G4PVPlacement(0,G4ThreeVector(15.625*cm,0*cm,0*cm),front_plate_log,"front_plate",det_log,false,0);
 
   G4Tubs* plate_hole = new G4Tubs("plate_hole",0*cm,3.1813*cm,0.9525*cm,0*deg,360*deg);
 
@@ -302,15 +328,6 @@ const G4int nEntries = 190;
 
   //G4VPhysicalVolume* FrontPlateWithHole_phys
     //= new G4PVPlacement(rotPlate,G4ThreeVector(15.625*cm,0*cm,0*cm),FrontPlateWithHole_log,"front_plate",det_log,false,0);
-
-  //G4LogicalVolume* plate_hole_log
-    //= new G4LogicalVolume(plate_hole,Air,"plate_hole",0,0,0);
-
-  //G4RotationMatrix* rotPlate = new G4RotationMatrix;
-    //rotPlate->rotateY(90*deg);
-
-  //G4VPhysicalVolume* plate_hole_phys
-    //= new G4PVPlacement(rotPlate,G4ThreeVector(15.625*cm,0*cm,0*cm),plate_hole_log,"plate_hole",det_log,false,0);
 
 
 //quartz holder 
@@ -331,197 +348,205 @@ const G4int nEntries = 190;
   G4LogicalVolume* quartz_holder_log_right
     = new G4LogicalVolume(QuartzHolderRight,Alu_Mat,"quartz_holder",0,0,0);
 
-  //G4LogicalVolume* quartz_holder_log
-    //= new G4LogicalVolume(quartz_holder_bar,Alu_Mat,"quartz_holder",0,0,0);
-
   //G4VPhysicalVolume* quartz_holder_phys_left
     //= new G4PVPlacement(0,G4ThreeVector(7.5*cm,1.78*cm,-0.5*cm),quartz_holder_log_left,"quartz_holder_left",det_log,false,0);
 
   //G4VPhysicalVolume* quartz_holder_phys_right
     //= new G4PVPlacement(0,G4ThreeVector(7.5*cm,-1.78*cm,-0.5*cm),quartz_holder_log_right,"quartz_holder_right",det_log,false,0);
 
-// Light Guide 
-
-//Front
-
-G4Box* frontPlate_1 = new G4Box("frontPlate_1", 0.025*cm, 44.73*mm/2, 20.19*mm/2);
-   
-	G4LogicalVolume* frontPlate_1_log = new G4LogicalVolume(frontPlate_1, Mirror, "FrontPlate_1_log",0,0,0);
+	//////////////////////Air
 	
-	G4RotationMatrix* rotF_1 = new G4RotationMatrix;
-	rotF_1->rotateY(0*deg);
-	 G4VPhysicalVolume* frontPlate_1_phys
-		= new G4PVPlacement(rotF_1,G4ThreeVector(-76.10*mm,0.17*mm,1.87*mm),frontPlate_1_log,"FrontPlate_1_phys",
-							det_log,false,0);
+/*	  G4Box* ruler_box = new G4Box("Ruler",1.5*cm,1*cm,1*cm);
+	 
+	 G4LogicalVolume* ruler_log
+	 = new G4LogicalVolume(ruler_box,Air,"Ruler",0,0,0);
+	 
+	 G4VPhysicalVolume* ruler_phys
+	 = new G4PVPlacement(0,G4ThreeVector(quartz_y+1.4*cm,0.5*cm,0*cm),ruler_log,"Ruler",
+	 det_log,false,0);  
+*/	 
+	 
+	
+// The small mirror on the quartz
+//
+/*
+  G4Box* mirr_Box = new G4Box("QuMirror", .05*cm, quartz_x, quartz_z*1.4142);
+  
+  G4LogicalVolume* mirr_log = new G4LogicalVolume(mirr_Box, Mirror, "QuMirror",0,0,0);
+  
+    G4RotationMatrix* rotM = new G4RotationMatrix;
 
+	//rotM->rotateZ(M_PI*rad);
+    rotM->rotateY(-M_PI/4.*rad);
+  
+  
+  G4VPhysicalVolume* mirr_Phys = new G4PVPlacement(rotM,G4ThreeVector(-1*quartz_y+.05*cm,0,quartz_zPos+.06*cm), mirr_log, "QuMirror",
+													det_log,false, 0);  // normally z= .06
+*/
+
+// Trapezoid tube plates
 // Top
 
-   G4Box* topPlate_1 = new G4Box("topPlate_1", 136.53*mm/2, 44.73*mm/2, 0.025*cm);
+   G4Trd* topPlate = new G4Trd("topPlate", 1.*mm, 1.*mm, 38.*mm/2, 64.*mm/2, 228.*mm);
    
-	G4LogicalVolume* topPlate_1_log = new G4LogicalVolume(topPlate_1, Mirror, "TopPlate_1_log",0,0,0);
-	
-	G4RotationMatrix* rotT_1 = new G4RotationMatrix;
-	rotT_1->rotateY(0*deg);
-	 G4VPhysicalVolume* topPlate_1_phys
-		= new G4PVPlacement(rotT_1,G4ThreeVector(-7.83*mm,0.17*mm,-8.73*mm),topPlate_1_log,"TopPlate_1_phys",
-							det_log,false,0);
+	G4LogicalVolume* topPlate_log = new G4LogicalVolume(topPlate, Mirror, "TopPlate_log",0,0,0);
 
-   G4Box* topPlate_2 = new G4Box("topPlate_2", 12.38*mm/2, 44.73*mm/2, 0.025*cm);
-   
-	G4LogicalVolume* topPlate_2_log = new G4LogicalVolume(topPlate_2, Mirror, "TopPlate_2_log",0,0,0);
-	
-	G4RotationMatrix* rotT_2 = new G4RotationMatrix;
-	rotT_2->rotateY(-255*deg);
-	 G4VPhysicalVolume* topPlate_2_phys
-		= new G4PVPlacement(rotT_2,G4ThreeVector(62.09*mm,0.17*mm,-14.49*mm),topPlate_2_log,"TopPlate_2_phys",
-							det_log,false,0);
 
-   G4Box* topPlate_3 = new G4Box("topPlate_3", 38.58*mm/2, 44.73*mm/2, 0.025*cm);
-   
-	G4LogicalVolume* topPlate_3_log = new G4LogicalVolume(topPlate_3, Mirror, "TopPlate_3_log",0,0,0);
-	
-	G4RotationMatrix* rotT_3 = new G4RotationMatrix;
-	rotT_3->rotateY(-45*deg);
-	 G4VPhysicalVolume* topPlate_3_phys
-		= new G4PVPlacement(rotT_3,G4ThreeVector(77.36*mm,-0.17*mm,-34.26*mm),topPlate_3_log,"TopPlate_3_phys",
-							det_log,false,0);
+   G4VisAttributes* topPlateVis = new G4VisAttributes(G4Color(1.,0.,0.));
+   topPlate_log->SetVisAttributes(topPlateVis);
+
+
+	G4RotationMatrix* rotT = new G4RotationMatrix;
+	rotT->rotateX(0.0*deg);
+	rotT->rotateY(-45.0*deg+5.27*deg);//12.27*deg
+	 G4VPhysicalVolume* topPlate_phys
+		= new G4PVPlacement(rotT,G4ThreeVector(-32.*mm*sin(45*deg)+5.*mm*sin(45*deg),0.0*mm,-32.*mm*sin(45*deg)-5.*mm*sin(45*deg)),topPlate_log,"TopPlate_phys",
+//		= new G4PVPlacement(rotT,G4ThreeVector(-13.44*mm,0.0*mm,-41.96*mm),topPlate_log,"TopPlate_phys",
+							det_log,false,0);  // normally zero vector
+
 
 // Bottom 
-   G4Box* botPlate_1 = new G4Box("botPlate_1", 162.43*mm/2, 44.73*mm/2, 0.025*cm);
+   G4Trd* botPlate = new G4Trd("botPlate", 1.*mm, 1.*mm, 38.*mm/2, 64.*mm/2, 225.*mm);
    
-	G4LogicalVolume* botPlate_1_log = new G4LogicalVolume(botPlate_1, Mirror, "botPlate_1_log",0,0,0);
+	G4LogicalVolume* botPlate_log = new G4LogicalVolume(botPlate, Mirror, "botPlate_log",0,0,0);
 	
-	G4RotationMatrix* rotB_1 = new G4RotationMatrix;
-	rotB_1->rotateY(0*deg);
-        rotB_1->rotateY(0*deg); 	
+	G4RotationMatrix* rotB = new G4RotationMatrix;
+	rotB->rotateX(0.0*deg);
+	rotB->rotateY(-45.0*deg-9.42*deg);	
 
-	 G4VPhysicalVolume* botPlate_1_phys
-		= new G4PVPlacement(rotB_1,G4ThreeVector(5.12*mm, 0.17*mm,11.97*mm),botPlate_1_log,"botPlate_1_phys",
-			det_log,false,0);
-
-   G4Box* botPlate_2 = new G4Box("botPlate_2", 45.62*mm/2, 44.73*mm/2, 0.025*cm);
-   
-	G4LogicalVolume* botPlate_2_log = new G4LogicalVolume(botPlate_2, Mirror, "botPlate_2_log",0,0,0);
-	
-	G4RotationMatrix* rotB_2 = new G4RotationMatrix;
-	rotB_2->rotateY(-45*deg); 	
-
-	 G4VPhysicalVolume* botPlate_2_phys
-		= new G4PVPlacement(rotB_2,G4ThreeVector(102.46*mm, 0.17*mm,-4.16*mm),botPlate_2_log,"botPlate_2_phys",
-			det_log,false,0);
-
-//  Laterals
-
-//right		
-										
-    G4Trap* RPlate_1 = new G4Trap("RPlate_1", 0.05*cm, 20.19*mm, 162.43*mm, 137.03*mm);
-	  
-	G4LogicalVolume* RPlate_1_log = new G4LogicalVolume(RPlate_1, Mirror, "RPlate_1_log",0,0,0);
-	
-	G4RotationMatrix* rotR_1 = new G4RotationMatrix;
-	rotR_1->rotateY(0*deg);
-	rotR_1->rotateX(90*deg);
-
-	 G4VPhysicalVolume* RPlate_1_phys
-		= new G4PVPlacement(rotR_1,G4ThreeVector(-1.77*mm,22.53*mm,1.01*mm),RPlate_1_log,"RPlate_1_phys",
-							det_log,false,0);
-
-    G4Trap* RPlate_2 = new G4Trap("RPlate_2", 0.05*cm, 38.58*mm, 45.62*mm, 38.43*mm);
-	  
-	G4LogicalVolume* RPlate_2_log = new G4LogicalVolume(RPlate_2, Mirror, "RPlate_2_log",0,0,0);
-	
-	G4RotationMatrix* rotR_2 = new G4RotationMatrix;
-        rotR_2->rotateX(90*deg);
-	rotR_2->rotateY(180*deg);
-	rotR_2->rotateZ(45*deg);
-        
-	 G4VPhysicalVolume* RPlate_2_phys
-		= new G4PVPlacement(rotR_2,G4ThreeVector(89.09*mm+0.5*mm,22.53*mm,-20.23*mm+0.5*mm),RPlate_2_log,"RPlate_2_phys",
-							det_log,false,0);
+	 G4VPhysicalVolume* botPlate_phys
+		= new G4PVPlacement(rotB,G4ThreeVector(-32.*mm*sin(45*deg)-5.*mm*sin(45*deg),0.0*mm,-32.*mm*sin(45*deg)+5.*mm*sin(45*deg)),botPlate_log,"botPlate_phys",
+			det_log,false,0);  // normally zero vector
 
 
+												
     G4int nCVtx = 8;
     std::vector<G4TwoVector> cvtx(nCVtx);
-    cvtx[0] = G4TwoVector(  0.0*cm,   0.0*mm);
-    cvtx[1] = G4TwoVector(-4.93*mm,  11.35*mm);
-    cvtx[2] = G4TwoVector( 32.45*mm,   0.0*mm);
-    cvtx[3] = G4TwoVector( 32.45*mm,   0.0*mm);
-    cvtx[4] = G4TwoVector(  0.0*mm,   0.0*mm);
-    cvtx[5] = G4TwoVector(-4.93*mm,  11.35*mm);
-    cvtx[6] = G4TwoVector( 32.45*mm,   0.0*mm);
-    cvtx[7] = G4TwoVector( 32.45*mm,   0.0*mm);
+    cvtx[0] = G4TwoVector(0.0*mm, 0.0*mm);
+    cvtx[1] = G4TwoVector(228.43*mm, 0.0*mm);
+    cvtx[2] = G4TwoVector(228.43*mm, 10.84*mm);
+    cvtx[3] = G4TwoVector(0.0*mm, 60.0*mm);
+    cvtx[4] = G4TwoVector(0.0*mm, 0.0*mm);
+    cvtx[5] = G4TwoVector(228.43*mm, 0.0*mm);
+    cvtx[6] = G4TwoVector(228.43*mm, 10.84*mm);
+    cvtx[7] = G4TwoVector(0.0*mm, 60.0*mm);
      
-    G4GenericTrap* RPlate_3 = new G4GenericTrap("RPlate_3",0.025*cm,cvtx);
-    
-    G4LogicalVolume* RPlate_3_log = new G4LogicalVolume(RPlate_3, Mirror, "RPlate_3_log",0,0,0);
-    
-    G4RotationMatrix* rotR_3 = new G4RotationMatrix;
-        rotR_3->rotateX(90*deg);
-	rotR_3->rotateY(0*deg);
-	rotR_3->rotateZ(38.48*deg);
-        
-	 G4VPhysicalVolume* RPlate_3_phys
-		= new G4PVPlacement(rotR_3,G4ThreeVector(60.94*mm-0.5*mm,22.53*mm,-8.23*mm-0.5*mm),RPlate_3_log,"RPlate_3_phys",
-							det_log,false,0);
-
-//Left
+    G4GenericTrap* RPlate = new G4GenericTrap("RPlate",0.025*cm,cvtx);
 	  
-	G4LogicalVolume* LPlate_1_log = new G4LogicalVolume(RPlate_1, Mirror, "LPlate_log",0,0,0);
+	G4LogicalVolume* RPlate_log = new G4LogicalVolume(RPlate, Mirror, "RPlate_log",0,0,0);
 	
-	G4RotationMatrix* rotL_1 = new G4RotationMatrix;
-	rotL_1->rotateY(0*deg);
-	rotL_1->rotateX(90*deg);
-	
-	 G4VPhysicalVolume* LPlate_1_phys
-		= new G4PVPlacement(rotL_1,G4ThreeVector(-1.77*mm,-22.53*mm,1.01*mm),LPlate_1_log,"RPlate_phys",
-							det_log,false,0);
+	G4RotationMatrix* rotR = new G4RotationMatrix;
+	rotR->rotateX(-90.0*deg+1.5*deg);
+	rotR->rotateZ(135.0*deg);
+        rotR->rotateY(0.0*deg);
 
+//	 G4VPhysicalVolume* RPlate_phys
+//	 = new G4PVPlacement(rotR,G4ThreeVector(42.43*mm,25.44*mm,63.64*mm),RPlate_log,"RPlate_phys",
+//							det_log,false,0);  // normally zero vector
 	  
-	G4LogicalVolume* LPlate_2_log = new G4LogicalVolume(RPlate_2, Mirror, "LPlate_2_log",0,0,0);
+	G4LogicalVolume* LPlate_log = new G4LogicalVolume(RPlate, Mirror, "LPlate_log",0,0,0);
 	
-	G4RotationMatrix* rotL_2 = new G4RotationMatrix;
-        rotL_2->rotateX(90*deg);
-	rotL_2->rotateY(180*deg);
-	rotL_2->rotateZ(45*deg);
-        
-	 G4VPhysicalVolume* LPlate_2_phys
-		= new G4PVPlacement(rotL_2,G4ThreeVector(89.09*mm+0.5*mm,-22.53*mm,-20.23*mm+0.5*mm),LPlate_2_log,"LPlate_2_phys",
-							det_log,false,0);
+	G4RotationMatrix* rotL = new G4RotationMatrix;
+	rotL->rotateX(-90.0*deg-1.5*deg);
+	rotL->rotateZ(135.0*deg);
+	
+//	 G4VPhysicalVolume* LPlate_phys
+//		= new G4PVPlacement(rotL,G4ThreeVector(42.43*mm,-25.44*mm,63.64*mm),LPlate_log,"LPlate_phys",
+//							det_log,false,0);  // normally zero vector
 
-    G4GenericTrap* LPlate_3 = new G4GenericTrap("LPlate_3",0.025*cm,cvtx);
-    
-    G4LogicalVolume* LPlate_3_log = new G4LogicalVolume(LPlate_3, Mirror, "LPlate_3_log",0,0,0);
-    
-    G4RotationMatrix* rotL_3 = new G4RotationMatrix;
-        rotL_3->rotateX(90*deg);
-	rotL_3->rotateY(0*deg);
-	rotL_3->rotateZ(39.61*deg);
+// The cone mirror
+//
+	
+  G4Cons* cmirror_cone = new G4Cons("CMirror",cone_rmin1,cone_rmax1,
+  cone_rmin2,cone_rmax2,cone_z,cone_sphi,cone_fphi);
 
-        
-	 G4VPhysicalVolume* LPlate_3_phys
-		= new G4PVPlacement(rotL_3,G4ThreeVector(60.94*mm-0.25*mm,-22.53*mm,-8.23*mm-0.25*mm),LPlate_3_log,"LPlate_3_phys",
-							det_log,false,0);
-
-
-//PMT
+  G4LogicalVolume* cmirror_log
+    = new G4LogicalVolume(cmirror_cone,Mirror,"CMirror",0,0,0);
 
   // Rotation
 
-    G4double rtphi = -45.0*deg;
-    G4RotationMatrix rm;
-    rm.rotateY(rtphi);	
-    G4double anini = 0*deg;
-    G4double anspan = 360*deg;	
+  G4VPhysicalVolume* cmirror_phys;
 
-// The photomultiplier window dimemsions
+    G4double rtphi = 45.*deg;
+    G4RotationMatrix rm;
+    rm.rotateY(rtphi);
+    G4double tmpx = 0.5*cm;
+
+//    cmirror_phys
+//    = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(tmpx,0., 0.)),  
+//                        cmirror_log,"CMirror",
+//                        det_log,false,0);
+
+
+// The tube mirror
+//	//	//	//	//	//	//	//	//	//	
+
+    G4double rin = 2.5*cm;
+    G4double rout = 2.55*cm;
+    G4double lngth = 2.3*cm;  // reg. tube
+//    G4double lngth = 3.5*cm;  // long tube	
+    G4double anini = 0*deg;
+    G4double anspan = 360*deg;
+/*
+
+
+G4Cons* mirror_tube = new G4Cons("TMirror",cone_rmin2,cone_rmax2,
+  2.5*cm,2.55*cm,lngth,cone_sphi,cone_fphi);
+
+  G4LogicalVolume* tmirror_log
+    = new G4LogicalVolume(mirror_tube,Mirror,"TMirror",0,0,0);
+
+
+  // Rotation
+
+  G4VPhysicalVolume* tmirror_phys;
+
+ 
+    G4double tmp = lngth+cone_z+tmpx;
+
+    tmirror_phys      // Only for tube at full distance (7.1cm)
+   // = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(11.8*cm,0.,0.)),  // Long tube
+    = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(12.4*cm,0.,0.)),  // Long tube
+						tmirror_log,"TMirror",
+                        det_log,false,0);
+*/
+ 
+ /*   
+  // Rotation
+
+  G4VPhysicalVolume* cmirror_phys;
+
+ 
+
+    rm.rotateY(rtphi);
+
+
+
+*/
+ //	//	//	//	//	//	//	//	//	//	
+
+// The photomultiplier
+//	quartz window
 
     G4double prin = 0;
-    G4double prout = 2.3*cm;
-    G4double plngth = 1.5*mm;    
+    G4double prout = 2.6*cm;
+    G4double plngth = 1.5*mm;
+    
+/*
+  G4Tubs* quartz_window = new G4Tubs("QuartzWin",prin,prout,3*mm,anini,anspan);
+
+  G4LogicalVolume* QuartzWin_log
+  = new G4LogicalVolume(quartz_window,Quartz,"QuartzWin",0,0,0);
+
+  G4VPhysicalVolume* QuartzWin_phys;
+
+  QuartzWin_phys = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector( 15.150*cm, 0., 0.)), QuartzWin_log,"QuartzWin", det_log, false, 0);
+*/
+
     
   //pmt
   
-  G4Tubs* pmt = new G4Tubs("PMT",prin,prout,plngth,anini,anspan);
+  G4Tubs* pmt = new G4Tubs("PMT",prin,2.3*cm,plngth,anini,anspan);
 
   G4LogicalVolume* pmt_log
     = new G4LogicalVolume(pmt,Air,"PMT",0,0,0);
@@ -536,13 +561,61 @@ G4Box* frontPlate_1 = new G4Box("frontPlate_1", 0.025*cm, 44.73*mm/2, 20.19*mm/2
   SDman->AddNewDetector(trackerSD);
   pmt_log->SetSensitiveDetector(trackerSD);
 
-  G4VPhysicalVolume* pmt_phys;
+  // Rotation
 
-    pmt_phys = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(110.7*mm,0.04*mm,-38.60*mm)),  
-                        pmt_log,"PMT",
-                        det_log,false,0);	
+
+//  G4double sep = 0.5*cm;
+//    G4double ptmp = tmp+lngth+sep;
+
+
+  G4double pmt_z = 14.65*cm*sin(45*deg)		//Get to end of quartz
+  	+ 7.*cm*sin(45*deg)		//7 cm PMT-quartz separation	
+	+ 8.333*mm*sin(45*deg);		//Shift PMT off quartz center
+
+  G4double pmt_x = 14.65*cm*sin(45*deg)		//Get to end of quartz
+  	+ 7.*cm*sin(45*deg)		//7 cm PMT-quartz separation	
+	- 8.333*mm*sin(45*deg);		//Shift PMT off quartz center
+
+//    pmt_phys
+      //  = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(10.1*cm,0.,0.)),  // Original sim. position
+	  //    = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(10.7*cm,0.,0.)),  // Cosmic test sim. position
 	
- // Coincidence volumes **** NOTE: Upper scint is above the quartz (First coincidence w/ e-)
+  G4VPhysicalVolume* pmt_phys
+	= new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(pmt_x,0.,pmt_z)),  // Final detector-pmt length position
+//		  = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(63.64*mm+0.5*cm*sin(45*deg),0.,42.43*mm+0.5*cm*sin(45*deg))),  // Final detector-pmt length position
+                        pmt_log,"PMT",
+                        det_log,false,0);
+
+ // metal cathode
+/*
+    G4double cin = 0;
+    G4double cout = 2.6*cm;
+    G4double clngth = 0.1*mm;
+
+
+  G4Tubs* cath = new G4Tubs("CATH",cin,cout,clngth,anin,anspan);
+
+  G4LogicalVolume* cath_log
+    = new G4LogicalVolume(cath,CATH,"CATH",0,0,0);
+
+  qsimDetector* cathSD = new qsimDetector("cath", 2);
+  
+  SDman->AddNewDetector(cathSD);
+  cath_log->SetSensitiveDetector(cathSD);
+
+  // Rotation
+
+  G4VPhysicalVolume* cath_phys;
+
+    G4double ctmp = 10.1*cm+plngth;
+
+    cath_phys
+    //    = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(ctmp,0.,0.)),cath_log,"CATH",det_log,false,0);  // Original sim. position
+	//	  = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(10.85*cm,0.,0.)),cath_log,"CATH",det_log,false,0);  // Cosmic test position (3.7cm quartz-pmt)
+		  = new G4PVPlacement(G4Transform3D(rm,G4ThreeVector(14.25*cm,0.,0.)),cath_log,"CATH",det_log,false,0);  // Cosmic test position (7.1cm quartz-pmt)
+*/	
+	
+ // Coincidence volumes **** NOTE: Upper scint is below the quartz (First coincidence w/ e-)
  
 	G4Box* upperScint = new G4Box("upperScint",0.25*cm,3.5*cm,20*cm);
 	G4LogicalVolume* uScint_log = new G4LogicalVolume(upperScint,Air,"upperScint",0,0,0);
@@ -556,49 +629,77 @@ G4Box* frontPlate_1 = new G4Box("frontPlate_1", 0.025*cm, 44.73*mm/2, 20.19*mm/2
 	SDman->AddNewDetector(upScintSD);
 	uScint_log->SetSensitiveDetector(upScintSD);
 	
-	G4double scintAngle = 90.0*deg;
+	G4double scintAngle = 180.0*deg;
 
 	G4RotationMatrix* scintRoll = new G4RotationMatrix;
 	scintRoll->rotateY(scintAngle);
 		
+	G4double upScint_pos=(-1*quartz_z)+(-2.5*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
+		
 	G4PVPlacement* uScint_phys;
+	//uScint_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(upScint_pos-1.*cm,0.0*cm,upScint_pos-1.*cm),
+	//						uScint_log,"upperScint",det_log,false,0);
 
-        uScint_phys 
-		= new G4PVPlacement(scintRoll,G4ThreeVector(0.0*cm,0.0*cm,55.0*cm),
-							uScint_log,"upperScint",det_log,false,0);
+        //uScint_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(-55.0*cm,0.0*cm,0.0*cm),
+	//						uScint_log,"upperScint",det_log,false,0);
 								
 
  /////////////
  
 	G4Box* lowScint = new G4Box("lowScint",0.25*cm,3.5*cm,20*cm);
 	G4LogicalVolume* lScint_log = new G4LogicalVolume(lowScint,Air,"lowScint",0,0,0);
+
+    // Make sensitive
+/*			//G4String 
+	DetSDname = "/tracker3";
+
+	qsimTrackerSD* loScintSD = new qsimTrackerSD(DetSDname);
+  
+	SDman->AddNewDetector(loScintSD);
+	lScint_log->SetSensitiveDetector(loScintSD);
+*/	
 	
-	
-	DetSDname = "tracker2";
+		DetSDname = "tracker2";
 	 
 	 qsimScintDetector* loScintSD = new qsimScintDetector(DetSDname, 2);
 	 
 	 SDman->AddNewDetector(loScintSD);
 	 lScint_log->SetSensitiveDetector(loScintSD);
-	 	
-	G4PVPlacement* lScint_phys;
+	 
+	
+	G4double loScint_pos=upScint_pos+70.71*cm;
 
-        lScint_phys 
-		= new G4PVPlacement(scintRoll,G4ThreeVector(0.0*cm,0.0*cm,-55.0*cm),
-	     						lScint_log,"lowerScint",det_log,false,0);
+//(-1*quartz_z)+(41.25*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
+		
+	G4PVPlacement* lScint_phys;
+	//lScint_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(loScint_pos,0.0*cm,loScint_pos),
+	//						lScint_log,"lowerScint",det_log,false,0);
+
+        //lScint_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(55.0*cm,0.0*cm,0.0*cm),
+	  //   						lScint_log,"lowerScint",det_log,false,0);
 
 
  /////////////
  
 	G4Box* Pb_blox = new G4Box("Pb_blox",13.0*cm,10.0*cm,20.0*cm);
-
+		// Really 10x5x10 cm half-lengths, expanded to ensure nothing
+		//   can hit the scint. w/o the lead.
 	G4LogicalVolume* Pb_log = new G4LogicalVolume(Pb_blox,Pb_Mat,"Lead",0,0,0);
+
+	G4double Pb_pos=loScint_pos-11.25*cm; //(-1*quartz_z)+(30.0*cm-(quartz_y*sin(scintAngle)))*sin(scintAngle);
 		
 	G4PVPlacement* Pb_phys;
+	//Pb_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(Pb_pos,0.0*cm,Pb_pos),
+	//						Pb_log,"Pb",det_log,false,0);
 
-        Pb_phys 
-		= new G4PVPlacement(scintRoll,G4ThreeVector(0.0*cm,0.0*cm,-41*cm),
-							Pb_log,"Pb",det_log,false,0);
+        //Pb_phys 
+	//	= new G4PVPlacement(scintRoll,G4ThreeVector(41.0*cm,0.0*cm,0.0*cm),
+	//						Pb_log,"Pb",det_log,false,0);
   
 
 
@@ -653,41 +754,17 @@ G4Box* frontPlate_1 = new G4Box("frontPlate_1", 0.025*cm, 44.73*mm/2, 20.19*mm/2
   //G4LogicalSkinSurface* TSurface = new
                //G4LogicalSkinSurface("TMirrorOpS",tmirror_log,MOpSurface);
 
-	G4LogicalSkinSurface* FrontSurface_1 = new
-	G4LogicalSkinSurface("FrontMirrorOpS_1",frontPlate_1_log,MOpSurface);
-
-	G4LogicalSkinSurface* TopSurface_1 = new
-	G4LogicalSkinSurface("TopMirrorOpS_1",topPlate_1_log,MOpSurface);
-
-	G4LogicalSkinSurface* TopSurface_2 = new
-	G4LogicalSkinSurface("TopMirrorOpS_2",topPlate_2_log,MOpSurface);
-
-	G4LogicalSkinSurface* TopSurface_3 = new
-	G4LogicalSkinSurface("TopMirrorOpS_3",topPlate_3_log,MOpSurface);
+	G4LogicalSkinSurface* TopSurface = new
+	G4LogicalSkinSurface("TopMirrorOpS",topPlate_log,MOpSurface);
 	
-	G4LogicalSkinSurface* BotSurface_1 = new
-	G4LogicalSkinSurface("BotMirrorOpS_1",botPlate_1_log,MOpSurface);
+	G4LogicalSkinSurface* BotSurface = new
+	G4LogicalSkinSurface("BotMirrorOpS",botPlate_log,MOpSurface);
 
-	G4LogicalSkinSurface* BotSurface_2 = new
-	G4LogicalSkinSurface("BotMirrorOpS_2",botPlate_2_log,MOpSurface);
-
-	G4LogicalSkinSurface* LSurface_1 = new
-	G4LogicalSkinSurface("LMirrorOpS_1",LPlate_1_log,MOpSurface);
-
-        G4LogicalSkinSurface* LSurface_2 = new
-	G4LogicalSkinSurface("LMirrorOpS_2",LPlate_2_log,MOpSurface);
-
-        G4LogicalSkinSurface* LSurface_3 = new
-	G4LogicalSkinSurface("LMirrorOpS_3",LPlate_3_log,MOpSurface);	
-
-	G4LogicalSkinSurface* RSurface_1 = new
-	G4LogicalSkinSurface("RMirrorOpS_1",RPlate_1_log,MOpSurface);
-
-        G4LogicalSkinSurface* RSurface_2 = new
-	G4LogicalSkinSurface("RMirrorOpS_2",RPlate_2_log,MOpSurface);
-
-        G4LogicalSkinSurface* RSurface_3 = new
-	G4LogicalSkinSurface("RMirrorOpS_3",RPlate_3_log,MOpSurface);
+	G4LogicalSkinSurface* LSurface = new
+	G4LogicalSkinSurface("LMirrorOpS",LPlate_log,MOpSurface);
+	
+	G4LogicalSkinSurface* RSurface = new
+	G4LogicalSkinSurface("RMirrorOpS",RPlate_log,MOpSurface);
 	
   //G4LogicalSkinSurface* CSurface = new
                //G4LogicalSkinSurface("CMirrorOpS",cmirror_log,MOpSurface);
@@ -698,7 +775,6 @@ G4Box* frontPlate_1 = new G4Box("frontPlate_1", 0.025*cm, 44.73*mm/2, 20.19*mm/2
 
   //G4LogicalSkinSurface* QuartWinSurface = new 
                //G4LogicalSkinSurface("QuartzWinOpS", QuartzWin_log, OpQuartzSurface);
-
 
 
 
